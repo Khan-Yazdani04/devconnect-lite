@@ -1,22 +1,23 @@
 import express from "express";
 import {
-  getDeveloperProfile,
-  updateDeveloperProfile,
-  getAllDevelopers,
-  getDeveloperBids,
-  getDeveloperProjects,
-} from "../controllers/developer.controller.js";
+  createProject,
+  getAllProjects,
+  getProjectById,
+  updateProject,
+  deleteProject,
+  closeProject,
+} from "../controllers/project.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// developer routes
-router.get("/me", verifyJWT, getDeveloperProfile);
-router.put("/update", verifyJWT, updateDeveloperProfile);
-router.get("/bids", verifyJWT, getDeveloperBids);
-router.get("/projects", verifyJWT, getDeveloperProjects);
+router.post("/create", verifyJWT, createProject);
+router.get("/all", getAllProjects);
+router.get("/:projectId", verifyJWT, getProjectById);
+router.put("/:projectId", verifyJWT, updateProject);
+router.delete("/:projectId", verifyJWT, deleteProject);
 
-
-router.get("/all", getAllDevelopers);
+// ✅ Use PATCH — semantically correct for closing
+router.patch("/:projectId/close", verifyJWT, closeProject);
 
 export default router;

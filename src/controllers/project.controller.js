@@ -3,14 +3,17 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Project } from "../models/project.model.js";
 import { Bid } from "../models/bid.model.js";
+import { Developer } from "../models/developer.model.js";
 
-// for creating a client
+/**
+ * Create a new project (Client only)
+ */
 const createProject = asyncHandler(async (req, res) => {
   if (!req.user || req.user.role !== "client") {
     throw new ApiError(403, "Only clients can create projects");
   }
 
-  const { title, description, budget, deadline } = req.body;
+  const { title, description, budget, deadline, techStack } = req.body;
 
   if (!title || !description || !budget || !deadline) {
     throw new ApiError(400, "All fields are required");
@@ -21,6 +24,7 @@ const createProject = asyncHandler(async (req, res) => {
     description,
     budget,
     deadline,
+    techStack,
     createdBy: req.user._id,
   });
 
@@ -29,7 +33,9 @@ const createProject = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, project, "Project created successfully"));
 });
 
-// for getting all open projects
+/**
+ * Get all open projects
+ */
 const getAllProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find({ status: "open" })
     .populate("createdBy", "name email")
@@ -40,15 +46,20 @@ const getAllProjects = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, projects, "All open projects fetched"));
 });
 
-// getting the project by and the bids placed on it
+/**
+ * Get project details + bids
+ */
 const getProjectById = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  const project = await Project.findById(projectId).populate("createdBy", "name email");
+  const project = await Project.findById(projectId).populate(
+    "createdBy",
+    "name email"
+  );
   if (!project) throw new ApiError(404, "Project not found");
 
   const bids = await Bid.find({ project: projectId })
-    .populate("developer", "name email amount")
+    .populate("developer", "name email")
     .sort({ amount: 1 });
 
   return res
@@ -56,11 +67,12 @@ const getProjectById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { project, bids }, "Project details fetched"));
 });
 
-
-// only owner can update project and if open as well
-export const updateProject = asyncHandler(async (req, res) => {
+/**
+ * Update a project (only if open + owned by user)
+ */
+const updateProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const { title, description, budget, deadline } = req.body;
+  const { title, description, budget, deadline, techStack } = req.body;
 
   const project = await Project.findById(projectId);
   if (!project) throw new ApiError(404, "Project not found");
@@ -70,13 +82,14 @@ export const updateProject = asyncHandler(async (req, res) => {
   }
 
   if (project.status !== "open") {
-    throw new ApiError(400, "Cannot update project once closed");
+    throw new ApiError(400, "Cannot update project once it’s not open");
   }
 
   project.title = title || project.title;
   project.description = description || project.description;
   project.budget = budget || project.budget;
   project.deadline = deadline || project.deadline;
+  project.techStack = techStack || project.techStack;
 
   await project.save();
 
@@ -85,8 +98,10 @@ export const updateProject = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, project, "Project updated successfully"));
 });
 
-// Delete the project and if only open
-export const deleteProject = asyncHandler(async (req, res) => {
+/**
+ * Delete a project (only if open + owned by user)
+ */
+const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
   const project = await Project.findById(projectId);
@@ -97,18 +112,20 @@ export const deleteProject = asyncHandler(async (req, res) => {
   }
 
   if (project.status !== "open") {
-    throw new ApiError(400, "Cannot delete project once closed");
+    throw new ApiError(400, "Cannot delete project once it’s not open");
   }
 
   await Project.findByIdAndDelete(projectId);
-  await Bid.deleteMany({ project: projectId }); // remove related bids
+  await Bid.deleteMany({ project: projectId }); // clean up related bids
 
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Project deleted successfully"));
 });
 
-// close the projects 
+/**
+ * Close a project (mark status as 'closed')
+ */
 const closeProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
@@ -123,8 +140,9 @@ const closeProject = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project is already closed");
   }
 
+  // ✅ Update status safely without triggering required-field validation
   project.status = "closed";
-  await project.save();
+  await project.save({ validateBeforeSave: false });
 
   return res
     .status(200)
@@ -137,5 +155,5 @@ export {
   getProjectById,
   updateProject,
   deleteProject,
-  closeProject
-}
+  closeProject,
+};

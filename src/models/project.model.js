@@ -1,37 +1,50 @@
 import mongoose from "mongoose";
 
-const projectSchema = new mongoose.Schema({
-    title:{
-        type: String,
-        required: true
+const projectSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, "Project title is required"],
+      trim: true,
     },
-
-    description:{
-        type: String,
+    description: {
+      type: String,
+      required: [true, "Project description is required"],
+      trim: true,
     },
-    
-    techStack:[{
-        type: String
-    }],
-
-    estimatedBudget: {
-        type: Number
+    budget: {
+      type: Number,
+      required: [true, "Project budget is required"],
+      min: [1, "Budget must be greater than zero"],
     },
-
+    deadline: {
+      type: Date,
+      required: [true, "Project deadline is required"],
+    },
+    techStack: {
+      type: [String],
+      default: [],
+    },
     status: {
-        type: String,
-        enum:["open", "in progress", "completed"],
-        default: "open",
+      type: String,
+      enum: ["open", "in progress", "completed", "closed"],
+      default: "open",
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 
-    createdBy:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    }
+// Optional: make sure deadline is not in the past
+projectSchema.pre("save", function (next) {
+  if (this.deadline && this.deadline < new Date()) {
+    return next(new Error("Deadline cannot be in the past"));
+  }
+  next();
+});
 
-},{
-    timestamps: true
-})
-
-export const Project = mongoose.model("Project",projectSchema)
+export const Project = mongoose.model("Project", projectSchema);

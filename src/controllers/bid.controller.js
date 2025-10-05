@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Bid } from "../models/bid.model.js";
 import { Project } from "../models/project.model.js";
+import { Developer } from "../models/developer.model.js";
 
 // place bids
 const placeBid = asyncHandler(async (req, res) => {

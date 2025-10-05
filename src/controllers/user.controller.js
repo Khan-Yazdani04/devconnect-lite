@@ -1,4 +1,3 @@
-
 // helper file likh rakhi hai utils mein asyncHandler
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from '../utils/ApiError.js';
@@ -75,7 +74,7 @@ const registerUser = asyncHandler( async (req, res) => {
 const loginUser = asyncHandler(async (req,res) => {
     
 
-   const {name, email, password} = req.body
+   const {name, email, password} = req.body  || {};
 
    if(!name && !email){
     throw new ApiError(400,"name or email is required!")
